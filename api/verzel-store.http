@@ -1,0 +1,232 @@
+@baseUrl = https://verzel-store.qa-test-verzel-store.workers.dev/api
+
+### GET /api/produtos — lista todos os produtos (CT-020)
+GET {{baseUrl}}/produtos
+
+### GET /api/produtos/{id} — produto existente (CT-021)
+GET {{baseUrl}}/produtos/P001
+
+### GET /api/produtos/{id} — produto inexistente, espera 404 PRODUTO_NAO_ENCONTRADO (CT-022)
+GET {{baseUrl}}/produtos/P999
+
+### GET rota inexistente — espera 404 ROTA_NAO_ENCONTRADA (CT-032)
+GET {{baseUrl}}/rota-que-nao-existe
+
+### DELETE em rota existente — espera 405 METODO_NAO_PERMITIDO (CT-033)
+DELETE {{baseUrl}}/produtos
+
+### POST /api/carrinho/calcular — cupom válido BEMVINDO10 (CT-001)
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P002", "quantidade": 1 },
+    { "produtoId": "P004", "quantidade": 2 }
+  ],
+  "cupom": "BEMVINDO10"
+}
+
+### POST /api/carrinho/calcular — cupom minúsculo com espaços (CT-002, CT-003 / CA02)
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 1 }
+  ],
+  "cupom": "  bemvindo10  "
+}
+
+### POST /api/carrinho/calcular — cupom inexistente, 200 com mensagem (CT-004 / CA03)
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 1 }
+  ],
+  "cupom": "NAOEXISTE"
+}
+
+### POST /api/carrinho/calcular — cupom expirado, 200 com mensagem (CT-005 / CA04)
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 1 }
+  ],
+  "cupom": "VERAO2026"
+}
+
+### POST /api/carrinho/calcular — subtotal exatamente R$200,00 sem cupom (CT-008 / CA06)
+### BUG-01: resposta retorna frete 19.9 e freteGratis:false. Esperado: frete 0 e freteGratis:true.
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P005", "quantidade": 2 }
+  ]
+}
+
+### POST /api/carrinho/calcular — subtotal exatamente R$200,00 com cupom (CT-012 / CA06+CA08)
+### BUG-01: mesma falha, mesmo com o subtotal pré-desconto em exatamente R$200,00.
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P005", "quantidade": 2 }
+  ],
+  "cupom": "BEMVINDO10"
+}
+
+### POST /api/carrinho/calcular — item com quantidade 6, acima do limite (CT-015 / CA10)
+### BUG-02: resposta 200 aceitando quantidade 6 sem erro QUANTIDADE_MAXIMA_EXCEDIDA.
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 6 }
+  ]
+}
+
+### POST /api/carrinho/calcular — mesmo produto duplicado em dois itens (CT-016b / CA10)
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 3 },
+    { "produtoId": "P001", "quantidade": 4 }
+  ]
+}
+
+### POST /api/carrinho/calcular — quantidade zero, espera QUANTIDADE_INVALIDA
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 0 }
+  ]
+}
+
+### POST /api/carrinho/calcular — quantidade não inteira, espera QUANTIDADE_INVALIDA
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+{
+  "itens": [
+    { "produtoId": "P001", "quantidade": 1.5 }
+  ]
+}
+
+### POST /api/carrinho/calcular — corpo não é JSON válido, espera 400 JSON_INVALIDO (CT-031)
+POST {{baseUrl}}/carrinho/calcular
+Content-Type: application/json
+
+nao-e-json
+
+### POST /api/pedidos — pedido válido completo (CT-038)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": {
+    "nome": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "cep": "01310-100"
+  },
+  "itens": [
+    { "produtoId": "P005", "quantidade": 1 }
+  ],
+  "cupom": "BEMVINDO10"
+}
+
+### POST /api/pedidos — cupom inválido, espera 422 CUPOM_INVALIDO (CT-025)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "01310100" },
+  "itens": [ { "produtoId": "P001", "quantidade": 1 } ],
+  "cupom": "NAOEXISTE"
+}
+
+### POST /api/pedidos — cupom expirado, espera 422 CUPOM_EXPIRADO (CT-026)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "01310100" },
+  "itens": [ { "produtoId": "P001", "quantidade": 1 } ],
+  "cupom": "VERAO2026"
+}
+
+### POST /api/pedidos — sem itens, espera 422 ITENS_OBRIGATORIOS (CT-027)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "01310100" },
+  "itens": []
+}
+
+### POST /api/pedidos — produto inexistente, espera 422 PRODUTO_NAO_ENCONTRADO (CT-029)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "01310100" },
+  "itens": [ { "produtoId": "P999", "quantidade": 1 } ]
+}
+
+### POST /api/pedidos — quantidade 6, acima do limite (CT-016 / CA10)
+### BUG-02: também aceito aqui com 201, sem QUANTIDADE_MAXIMA_EXCEDIDA.
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "01310100" },
+  "itens": [ { "produtoId": "P001", "quantidade": 6 } ]
+}
+
+### POST /api/pedidos — nome sem sobrenome, espera 422 DADOS_INVALIDOS (CT-034)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria", "email": "maria@exemplo.com", "cep": "01310100" },
+  "itens": [ { "produtoId": "P001", "quantidade": 1 } ]
+}
+
+### POST /api/pedidos — e-mail inválido, espera 422 DADOS_INVALIDOS (CT-035)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "invalido", "cep": "01310100" },
+  "itens": [ { "produtoId": "P001", "quantidade": 1 } ]
+}
+
+### POST /api/pedidos — CEP inválido, espera 422 DADOS_INVALIDOS (CT-036)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "123" },
+  "itens": [ { "produtoId": "P001", "quantidade": 1 } ]
+}
+
+### POST /api/pedidos — CEP com hífen, 8 dígitos, deve ser aceito (CT-037)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "cliente": { "nome": "Maria Silva", "email": "maria@exemplo.com", "cep": "01310-100" },
+  "itens": [ { "produtoId": "P001", "quantidade": 1 } ]
+}
